@@ -1,0 +1,289 @@
+<html>
+
+<head>
+    <title>Liguus experiment #001</title>
+    <meta charset="utf-8">
+    <style type="text/css">
+    body {
+    font-size: 16px;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #444;
+}
+
+canvas {
+    padding: 0px;
+    margin: 0px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+table {
+    margin-top: 0px;
+    margin-bottom: 0px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0px;
+    align-content: center;
+
+}
+td { align-content: center; vertical-align: top; padding: 0px; margin: 0px;}
+tr { align-content: center; vertical-align: top; padding: 0px; margin: 0px;}
+
+label {
+    padding-bottom: 8px;
+}
+
+.inputWrapper {
+    margin: auto;
+    padding: 10px;
+    padding-top: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.inputWrapper group {
+    width: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.inputWrapper group label {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    text-align: center;
+}
+
+.inputWrapper group input {
+    width: 150px;
+}
+
+#draft-container {
+    width: 100%;
+    text-align: center;
+}
+    </style>
+    <script src="rand.js"></script>
+    <script src="array.js"></script>
+    <script type="application/javascript">
+
+        function setup() {
+
+        }
+
+        function regenerate() {
+            setSeed(parseInt(document.getElementById("seed").value));
+            setup();
+            draw();
+        }
+
+        function getQueryVariable(variable) {
+            var query = window.location.search.substring(1);
+            var vars = query.split('&');
+            for (var i = 0; i < vars.length; i++) {
+                var pair = vars[i].split('=');
+                if (decodeURIComponent(pair[0]) == variable) {
+                    return decodeURIComponent(pair[1]);
+                }
+            }
+        }
+
+        function set_if_query(query_name, element_id="") {
+            if (!element_id ) {
+                element_id = query_name;
+            }
+            const query_value = getQueryVariable(query_name)
+            if (query_value) {
+                document.getElementById(element_id).value = query_value
+            }
+        }
+        let reactive_sliders = [
+            "seed",
+        ]
+
+        function update_query_string() {
+            let search_params = new URLSearchParams(window.location.search);
+            for (name of reactive_sliders) {
+                let value = document.getElementById(name).value;
+                search_params.set(name, value);
+            }
+            window.location.search = search_params.toString();
+        }
+
+        function onload() {
+            for (name of reactive_sliders) {
+                set_if_query(name);
+                let elt = document.getElementById(name);
+                if (!elt) { alert(name + " not found"); }
+                else {
+                    elt.addEventListener("input", regenerate);
+                }
+            }
+            document.getElementById("link").addEventListener("click", update_query_string)
+            regenerate();
+        }
+
+            if (col_hsl.length < num_warp_threads) {
+                alert(`Too few colors (${col_hsl.length}) for ${num_warp_threads} warp threads`);
+            }
+
+            if (row_hsl.length < num_weft_threads) {
+                alert(`Too few colors (${row_hsl.length}) for ${num_weft_threads} warp threads`);
+            }
+            for (let col = 0; col < num_warp_threads; ++col) {
+                const start_x = col * pixels_per_thread;
+                const end_x = (col + 1) * pixels_per_thread;
+                for (let row = 0; row < num_weft_threads; ++row) {
+                    const start_y = row * pixels_per_thread;
+                    const end_y = (row + 1) * pixels_per_thread;
+                    const row_flag = matrix[row][col]
+                    const hue = row_flag ? row_hsl[row][0] : col_hsl[col][0];
+                    const saturation = row_flag ? row_hsl[row][1] : col_hsl[col][1];
+                    const lightness = row_flag ? row_hsl[row][2] : col_hsl[col][2];
+                    /*
+                    var gradient;
+                    if (row_flag) {
+                        gradient = ctx.createLinearGradient(start_x  , start_y, end_x, start_y);
+                    } else {
+                        gradient = ctx.createLinearGradient(start_x , start_y, start_x, end_y);
+                    }
+                    gradient.addColorStop(0, `hsla( ${hue}, ${saturation}%, ${0.2 * lightness}%, 1.0)`);
+                    gradient.addColorStop(0.5,`hsla( ${hue}, ${saturation}%, ${lightness}%, 1.0)`);
+
+                    //gradient.addColorStop(0.5,`hsla( ${hue}, ${saturation}%, ${lightness}%, 1.0)`);
+                    gradient.addColorStop(0.5,`hsla( ${hue}, ${saturation}%, ${lightness}%, 1.0)`);
+                    gradient.addColorStop(1, `hsla( ${hue}, ${saturation}%, ${0.2 * lightness}%, 1.0)`);
+                    */
+                    ctx.beginPath();
+                    ctx.strokeStyle = `hsla( ${hue}, ${saturation}%, ${lightness}%, 1.0)`
+
+                    if (row_flag) {
+                        let middle_y = (start_y + end_y) / 2;
+                        ctx.moveTo(start_x, middle_y);
+                        ctx.lineTo(end_x, middle_y);
+                    } else {
+                        let middle_x = (start_x + end_x) / 2;
+                        ctx.moveTo(middle_x, start_y);
+
+                        ctx.lineTo(middle_x, end_y)
+                    }
+                    ctx.stroke();
+                }
+            }
+        }
+        function draw() {
+            draw_color_palette();
+            draw_warp_colors();
+            draw_weft_colors();
+            draw_threading();
+            draw_treadling();
+            draw_tieup();
+            draw_weave();
+        }
+
+        function get_canvas_context(canvas_id, threads_width, threads_height) {
+            var canvas = document.getElementById(canvas_id);
+            var ctx = canvas.getContext('2d');
+            if (!threads_width) {
+                threads_width = 0;
+            }
+            if (!threads_height) {
+                threads_height = 0;
+            }
+            canvas.width = threads_width * pixels_per_thread;
+            canvas.height = threads_height * pixels_per_thread;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.lineWidth = pixels_per_thread;
+            return [ctx, canvas];
+        }
+
+        function draw_color_palette() {
+            let n_colors = palette.length;
+
+            let [ctx, canvas] = get_canvas_context("color-palette", n_colors, 1);
+            let bool_matrix = const_array_2d(1, n_colors, false);
+            draw_matrix(ctx, bool_matrix,  palette, [[0,0,0]]);
+
+        }
+        function draw_warp_colors() {
+            let [ctx, canvas] = get_canvas_context("warp-colors", num_warp_threads, 2);
+        }
+        function draw_weft_colors() {
+            let [ctx, canvas] = get_canvas_context("weft-colors", 2, num_weft_threads);
+        }
+
+        function draw_threading() {
+            let [ctx, canvas] = get_canvas_context("threading", num_warp_threads, num_frames);
+            document.getElementById("threading-cell").width = canvas.width;
+            document.getElementById("threading-cell").height = canvas.height;
+            const col_hsl = all_black(num_warp_threads);
+            const row_hsl = all_white(num_frames)
+            draw_matrix(ctx, program.threading_matrix, col_hsl, row_hsl);
+
+        }
+        function draw_treadling() {
+            let [ctx, canvas] = get_canvas_context("treadling", num_pedals, num_weft_threads);
+            document.getElementById("treadling-cell").width = canvas.width;
+            document.getElementById("treadling-cell").height = canvas.height;
+            const col_hsl = all_black(num_pedals);
+            const row_hsl = all_white(num_weft_threads)
+            draw_matrix(ctx, program.treadling_matrix, col_hsl, row_hsl);
+        }
+
+        function draw_tieup() {
+            let [ctx, canvas] = get_canvas_context("tie-up", num_pedals, num_frames);
+            document.getElementById("tie-up-cell").width = canvas.width;
+            document.getElementById("tie-up-cell").height = canvas.height;
+
+            const col_hsl = all_black(num_pedals);
+            const row_hsl = all_white(num_frames)
+            draw_matrix(ctx, program.tie_up,  col_hsl, row_hsl);
+        }
+        function draw_weave() {
+
+            [ctx, canvas] = get_canvas_context("weave", num_warp_threads, num_weft_threads);
+            document.getElementById("weave-cell").width = canvas.width;
+            document.getElementById("weave-cell").height = canvas.height;
+
+            const col_hsl = warp_colors(num_warp_threads);
+            const row_hsl = weft_colors(num_weft_threads)
+
+            /*
+            ctx.lineCap='round';
+            ctx.lineJoin='round';
+            */
+            const matrix = program.make_binary_matrix(); // num_weft_threads, num_warp_threads)
+            draw_matrix(ctx, matrix, col_hsl, row_hsl);
+        }
+        window.addEventListener("load", onload);
+    </script>
+</head>
+<body>
+
+
+<div class="inputWrapper">
+    <group>
+        <label>Seed</label>
+        <input type="range" id="seed" value="10" min="8" max="1000" step="1">
+    </group>
+</div>
+<div id="draft-container">
+<table>
+    <tr>
+        <td colspan="3" id="color-palette-cell">
+            <canvas id="color-palette" style="height:20px;"></canvas>
+        </td>
+    </tr>
+    <tr>
+        <td id="weave-cell"><canvas id="weave"></canvas></td>
+    </tr>
+
+</table>
+</div>
+
+</body>
+</html>
